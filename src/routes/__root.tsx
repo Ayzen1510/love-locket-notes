@@ -80,10 +80,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Couple Memories Lock — A private love diary" },
       { name: "description", content: "A romantic, PIN-locked memory diary for couples. Save notes, photos, and milestones privately." },
       { name: "theme-color", content: "#ff7aa2" },
-      { property: "og:title", content: "Couple Memories Lock" },
-      { property: "og:description", content: "A private, PIN-locked memory diary for couples." },
+      { property: "og:title", content: "Couple Memories Lock — A private love diary" },
+      { property: "og:description", content: "A romantic, PIN-locked memory diary for couples. Save notes, photos, and milestones privately." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Couple Memories Lock — A private love diary" },
+      { name: "twitter:description", content: "A romantic, PIN-locked memory diary for couples. Save notes, photos, and milestones privately." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/b67676a1-b4bf-42e3-9b41-33422ebae0f2" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/b67676a1-b4bf-42e3-9b41-33422ebae0f2" },
     ],
     links: [
       {
