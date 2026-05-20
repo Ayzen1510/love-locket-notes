@@ -9,6 +9,11 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { Toaster } from "sonner";
+import { AuthProvider } from "@/lib/auth";
+import { LockProvider } from "@/lib/lock";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
@@ -72,14 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Couple Memories Lock — A private love diary" },
+      { name: "description", content: "A romantic, PIN-locked memory diary for couples. Save notes, photos, and milestones privately." },
+      { name: "theme-color", content: "#ff7aa2" },
+      { property: "og:title", content: "Couple Memories Lock" },
+      { property: "og:description", content: "A private, PIN-locked memory diary for couples." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -111,9 +115,21 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      queryClient.invalidateQueries();
+    });
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <AuthProvider>
+        <LockProvider>
+          <Outlet />
+          <Toaster position="top-center" richColors closeButton />
+        </LockProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
