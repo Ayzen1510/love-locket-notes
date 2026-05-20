@@ -7,7 +7,7 @@ import { AppGate } from "@/components/AppGate";
 import { signedUrl } from "@/lib/memories";
 import type { Memory, MemoryImage } from "@/lib/memories";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Heart, Trash2, Calendar, Pencil, X } from "lucide-react";
+import { ArrowLeft, Heart, Trash2, Calendar, X } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
