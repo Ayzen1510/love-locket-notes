@@ -11,9 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as QuotesRouteImport } from './routes/quotes'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotRouteImport } from './routes/forgot'
+import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MemoryNewRouteImport } from './routes/memory.new'
+import { Route as MemoryIdRouteImport } from './routes/memory.$id'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -23,6 +28,16 @@ const SignupRoute = SignupRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotesRoute = QuotesRouteImport.update({
+  id: '/quotes',
+  path: '/quotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -35,48 +50,114 @@ const ForgotRoute = ForgotRouteImport.update({
   path: '/forgot',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FavoritesRoute = FavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MemoryNewRoute = MemoryNewRouteImport.update({
+  id: '/memory/new',
+  path: '/memory/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MemoryIdRoute = MemoryIdRouteImport.update({
+  id: '/memory/$id',
+  path: '/memory/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/favorites': typeof FavoritesRoute
   '/forgot': typeof ForgotRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
+  '/quotes': typeof QuotesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/memory/$id': typeof MemoryIdRoute
+  '/memory/new': typeof MemoryNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/favorites': typeof FavoritesRoute
   '/forgot': typeof ForgotRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
+  '/quotes': typeof QuotesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/memory/$id': typeof MemoryIdRoute
+  '/memory/new': typeof MemoryNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/favorites': typeof FavoritesRoute
   '/forgot': typeof ForgotRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
+  '/quotes': typeof QuotesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/memory/$id': typeof MemoryIdRoute
+  '/memory/new': typeof MemoryNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/forgot' | '/login' | '/reset-password' | '/signup'
+  fullPaths:
+    | '/'
+    | '/favorites'
+    | '/forgot'
+    | '/login'
+    | '/profile'
+    | '/quotes'
+    | '/reset-password'
+    | '/signup'
+    | '/memory/$id'
+    | '/memory/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/forgot' | '/login' | '/reset-password' | '/signup'
-  id: '__root__' | '/' | '/forgot' | '/login' | '/reset-password' | '/signup'
+  to:
+    | '/'
+    | '/favorites'
+    | '/forgot'
+    | '/login'
+    | '/profile'
+    | '/quotes'
+    | '/reset-password'
+    | '/signup'
+    | '/memory/$id'
+    | '/memory/new'
+  id:
+    | '__root__'
+    | '/'
+    | '/favorites'
+    | '/forgot'
+    | '/login'
+    | '/profile'
+    | '/quotes'
+    | '/reset-password'
+    | '/signup'
+    | '/memory/$id'
+    | '/memory/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FavoritesRoute: typeof FavoritesRoute
   ForgotRoute: typeof ForgotRoute
   LoginRoute: typeof LoginRoute
+  ProfileRoute: typeof ProfileRoute
+  QuotesRoute: typeof QuotesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  MemoryIdRoute: typeof MemoryIdRoute
+  MemoryNewRoute: typeof MemoryNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -95,6 +176,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quotes': {
+      id: '/quotes'
+      path: '/quotes'
+      fullPath: '/quotes'
+      preLoaderRoute: typeof QuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -109,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/favorites': {
+      id: '/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof FavoritesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -116,16 +218,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/memory/new': {
+      id: '/memory/new'
+      path: '/memory/new'
+      fullPath: '/memory/new'
+      preLoaderRoute: typeof MemoryNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/memory/$id': {
+      id: '/memory/$id'
+      path: '/memory/$id'
+      fullPath: '/memory/$id'
+      preLoaderRoute: typeof MemoryIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FavoritesRoute: FavoritesRoute,
   ForgotRoute: ForgotRoute,
   LoginRoute: LoginRoute,
+  ProfileRoute: ProfileRoute,
+  QuotesRoute: QuotesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  MemoryIdRoute: MemoryIdRoute,
+  MemoryNewRoute: MemoryNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
