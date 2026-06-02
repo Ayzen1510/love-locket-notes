@@ -7,7 +7,8 @@ import { AppGate } from "@/components/AppGate";
 import { signedUrl } from "@/lib/memories";
 import type { Memory, MemoryImage } from "@/lib/memories";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Heart, Trash2, Calendar, X } from "lucide-react";
+import { ArrowLeft, Heart, Trash2, Calendar, X, Pencil } from "lucide-react";
+import { MoodDisplay } from "@/components/MoodPicker";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
@@ -75,6 +76,9 @@ function MemoryDetail() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2">
+          <button onClick={() => navigate({ to: "/memory/$id/edit", params: { id } })} className="w-10 h-10 rounded-full glass text-foreground/70 flex items-center justify-center" aria-label="Edit">
+            <Pencil className="w-4 h-4" />
+          </button>
           <button onClick={toggleFav} className={`w-10 h-10 rounded-full flex items-center justify-center transition ${m.is_favorite ? "romance-gradient text-white" : "glass text-foreground/70"}`}>
             <Heart className="w-5 h-5" fill={m.is_favorite ? "currentColor" : "none"} />
           </button>
@@ -89,7 +93,7 @@ function MemoryDetail() {
           <Calendar className="w-3 h-3" /> {format(parseISO(m.memory_date), "EEEE, MMMM d, yyyy")}
         </p>
         <h1 className="text-3xl font-display romance-text mt-1 flex items-center gap-2">
-          {m.title} {m.mood && <span className="text-2xl">{m.mood}</span>}
+          {m.title} {m.mood && <MoodDisplay mood={m.mood} size={26} />}
         </h1>
         {m.tags?.length ? (
           <div className="flex gap-1.5 flex-wrap mt-3">
