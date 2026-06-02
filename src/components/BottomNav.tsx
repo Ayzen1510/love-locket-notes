@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Heart, Home, User, Plus } from "lucide-react";
+import { Heart, Home, User, Plus, MessageCircle } from "lucide-react";
 
 export function BottomNav() {
   const { pathname } = useLocation();
@@ -24,8 +24,8 @@ export function BottomNav() {
         >
           <Plus className="w-7 h-7 text-white" />
         </Link>
+        <Item to="/chat" icon={MessageCircle} label="Chat" />
         <Item to="/profile" icon={User} label="You" />
-        <Item to="/quotes" icon={Heart} label="Quotes" />
       </div>
     </nav>
   );

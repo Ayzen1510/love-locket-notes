@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      couple_invites: {
+        Row: {
+          code: string
+          created_at: string
+          inviter_id: string
+          used_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          inviter_id: string
+          used_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          inviter_id?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      couple_pairs: {
+        Row: {
+          created_at: string
+          id: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
       memories: {
         Row: {
           created_at: string
@@ -88,6 +130,41 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          image_path: string | null
+          pair_id: string
+          sender_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          pair_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          pair_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_pair_id_fkey"
+            columns: ["pair_id"]
+            isOneToOne: false
+            referencedRelation: "couple_pairs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pin_codes: {
         Row: {
           created_at: string
@@ -147,7 +224,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_pair_member: {
+        Args: { _pair_id: string; _user_id: string }
+        Returns: boolean
+      }
+      my_pair_id: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { TAG_OPTIONS, MOOD_OPTIONS, uploadImages } from "@/lib/memories";
+import { TAG_OPTIONS, uploadImages } from "@/lib/memories";
+import { MoodPickerInline } from "@/components/MoodPicker";
 import { toast } from "sonner";
 import { ArrowLeft, ImagePlus, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -93,18 +94,7 @@ function NewMemoryPage() {
 
         <div className="glass-strong rounded-3xl p-4 space-y-3">
           <Label>Mood</Label>
-          <div className="flex flex-wrap gap-2">
-            {MOOD_OPTIONS.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMood(mood === m ? "" : m)}
-                className={`h-10 w-10 rounded-2xl text-lg transition ${mood === m ? "romance-gradient scale-110" : "glass"}`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
+          {user && <MoodPickerInline value={mood} onChange={setMood} userId={user.id} />}
         </div>
 
         <div className="glass-strong rounded-3xl p-4 space-y-3">
