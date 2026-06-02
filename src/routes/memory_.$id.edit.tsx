@@ -14,7 +14,7 @@ import { MoodPickerInline } from "@/components/MoodPicker";
 import { ArrowLeft, ImagePlus, X, Heart } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/memory/$id/edit")({
+export const Route = createFileRoute("/memory_/$id/edit")({
   head: () => ({ meta: [{ title: "Edit memory · Couple Memories Lock" }] }),
   component: () => <AppGate><EditMemoryPage /></AppGate>,
 });
