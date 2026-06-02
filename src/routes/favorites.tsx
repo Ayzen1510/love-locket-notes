@@ -6,6 +6,7 @@ import { AppGate } from "@/components/AppGate";
 import { BottomNav } from "@/components/BottomNav";
 import { MemoryThumb } from "@/components/MemoryThumb";
 import { Heart, Calendar } from "lucide-react";
+import { isStickerMood } from "@/lib/memories";
 import type { Memory } from "@/lib/memories";
 import { format, parseISO } from "date-fns";
 
@@ -51,7 +52,7 @@ function Favorites() {
                   <div className="aspect-square relative">
                     <MemoryThumb path={m.thumb} className="w-full h-full" />
                     <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent text-white">
-                      <p className="text-sm font-display truncate">{m.title} {m.mood}</p>
+                      <p className="text-sm font-display truncate">{m.title} {m.mood && !isStickerMood(m.mood) ? m.mood : ""}</p>
                       <p className="text-[10px] flex items-center gap-1 opacity-80"><Calendar className="w-3 h-3" />{format(parseISO(m.memory_date), "MMM d, yyyy")}</p>
                     </div>
                   </div>
