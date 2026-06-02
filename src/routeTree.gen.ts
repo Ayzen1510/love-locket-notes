@@ -19,6 +19,7 @@ import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MemoryNewRouteImport } from './routes/memory.new'
 import { Route as MemoryIdRouteImport } from './routes/memory.$id'
+import { Route as MemoryIdEditRouteImport } from './routes/memory.$id.edit'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -70,6 +71,11 @@ const MemoryIdRoute = MemoryIdRouteImport.update({
   path: '/memory/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MemoryIdEditRoute = MemoryIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => MemoryIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,8 +86,9 @@ export interface FileRoutesByFullPath {
   '/quotes': typeof QuotesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/memory/$id': typeof MemoryIdRoute
+  '/memory/$id': typeof MemoryIdRouteWithChildren
   '/memory/new': typeof MemoryNewRoute
+  '/memory/$id/edit': typeof MemoryIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -92,8 +99,9 @@ export interface FileRoutesByTo {
   '/quotes': typeof QuotesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/memory/$id': typeof MemoryIdRoute
+  '/memory/$id': typeof MemoryIdRouteWithChildren
   '/memory/new': typeof MemoryNewRoute
+  '/memory/$id/edit': typeof MemoryIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,8 +113,9 @@ export interface FileRoutesById {
   '/quotes': typeof QuotesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/memory/$id': typeof MemoryIdRoute
+  '/memory/$id': typeof MemoryIdRouteWithChildren
   '/memory/new': typeof MemoryNewRoute
+  '/memory/$id/edit': typeof MemoryIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/memory/$id'
     | '/memory/new'
+    | '/memory/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/memory/$id'
     | '/memory/new'
+    | '/memory/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/memory/$id'
     | '/memory/new'
+    | '/memory/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -156,7 +168,7 @@ export interface RootRouteChildren {
   QuotesRoute: typeof QuotesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
-  MemoryIdRoute: typeof MemoryIdRoute
+  MemoryIdRoute: typeof MemoryIdRouteWithChildren
   MemoryNewRoute: typeof MemoryNewRoute
 }
 
@@ -232,8 +244,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MemoryIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/memory/$id/edit': {
+      id: '/memory/$id/edit'
+      path: '/edit'
+      fullPath: '/memory/$id/edit'
+      preLoaderRoute: typeof MemoryIdEditRouteImport
+      parentRoute: typeof MemoryIdRoute
+    }
   }
 }
+
+interface MemoryIdRouteChildren {
+  MemoryIdEditRoute: typeof MemoryIdEditRoute
+}
+
+const MemoryIdRouteChildren: MemoryIdRouteChildren = {
+  MemoryIdEditRoute: MemoryIdEditRoute,
+}
+
+const MemoryIdRouteWithChildren = MemoryIdRoute._addFileChildren(
+  MemoryIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -244,9 +275,19 @@ const rootRouteChildren: RootRouteChildren = {
   QuotesRoute: QuotesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
-  MemoryIdRoute: MemoryIdRoute,
+  MemoryIdRoute: MemoryIdRouteWithChildren,
   MemoryNewRoute: MemoryNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
