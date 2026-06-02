@@ -9,6 +9,7 @@ import { MemoryThumb } from "@/components/MemoryThumb";
 import { HeartParticles } from "@/components/HeartParticles";
 import { Input } from "@/components/ui/input";
 import { Heart, Search, Calendar, Sparkles } from "lucide-react";
+import { MoodDisplay } from "@/components/MoodPicker";
 import type { Memory } from "@/lib/memories";
 import { differenceInDays, format, parseISO } from "date-fns";
 
@@ -132,7 +133,7 @@ function Home() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <h3 className="font-display text-lg truncate">{m.title}</h3>
-                      {m.mood && <span className="text-base">{m.mood}</span>}
+                      {m.mood && <MoodDisplay mood={m.mood} size={16} />}
                     </div>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                       <Calendar className="w-3 h-3" /> {format(parseISO(m.memory_date), "MMM d, yyyy")}
