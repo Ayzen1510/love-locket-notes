@@ -228,6 +228,10 @@ export type Database = {
         Args: { _pair_id: string; _user_id: string }
         Returns: boolean
       }
+      is_partner_of: {
+        Args: { _owner: string; _viewer: string }
+        Returns: boolean
+      }
       my_pair_id: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {

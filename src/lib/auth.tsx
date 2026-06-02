@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: session?.user ?? null,
     loading,
     signOut: async () => {
+      if (typeof window !== "undefined") sessionStorage.removeItem("cml:unlocked-for");
       await supabase.auth.signOut();
     },
   };

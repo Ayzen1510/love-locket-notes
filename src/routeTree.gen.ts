@@ -20,7 +20,7 @@ import { Route as ChatRouteImport } from './routes/chat'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MemoryNewRouteImport } from './routes/memory.new'
 import { Route as MemoryIdRouteImport } from './routes/memory.$id'
-import { Route as MemoryIdEditRouteImport } from './routes/memory.$id.edit'
+import { Route as MemoryIdEditRouteImport } from './routes/memory_.$id.edit'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -78,9 +78,9 @@ const MemoryIdRoute = MemoryIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const MemoryIdEditRoute = MemoryIdEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => MemoryIdRoute,
+  id: '/memory_/$id/edit',
+  path: '/memory/$id/edit',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -93,7 +93,7 @@ export interface FileRoutesByFullPath {
   '/quotes': typeof QuotesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/memory/$id': typeof MemoryIdRouteWithChildren
+  '/memory/$id': typeof MemoryIdRoute
   '/memory/new': typeof MemoryNewRoute
   '/memory/$id/edit': typeof MemoryIdEditRoute
 }
@@ -107,7 +107,7 @@ export interface FileRoutesByTo {
   '/quotes': typeof QuotesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/memory/$id': typeof MemoryIdRouteWithChildren
+  '/memory/$id': typeof MemoryIdRoute
   '/memory/new': typeof MemoryNewRoute
   '/memory/$id/edit': typeof MemoryIdEditRoute
 }
@@ -122,9 +122,9 @@ export interface FileRoutesById {
   '/quotes': typeof QuotesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/memory/$id': typeof MemoryIdRouteWithChildren
+  '/memory/$id': typeof MemoryIdRoute
   '/memory/new': typeof MemoryNewRoute
-  '/memory/$id/edit': typeof MemoryIdEditRoute
+  '/memory_/$id/edit': typeof MemoryIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,7 +168,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/memory/$id'
     | '/memory/new'
-    | '/memory/$id/edit'
+    | '/memory_/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -181,8 +181,9 @@ export interface RootRouteChildren {
   QuotesRoute: typeof QuotesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
-  MemoryIdRoute: typeof MemoryIdRouteWithChildren
+  MemoryIdRoute: typeof MemoryIdRoute
   MemoryNewRoute: typeof MemoryNewRoute
+  MemoryIdEditRoute: typeof MemoryIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -264,27 +265,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MemoryIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/memory/$id/edit': {
-      id: '/memory/$id/edit'
-      path: '/edit'
+    '/memory_/$id/edit': {
+      id: '/memory_/$id/edit'
+      path: '/memory/$id/edit'
       fullPath: '/memory/$id/edit'
       preLoaderRoute: typeof MemoryIdEditRouteImport
-      parentRoute: typeof MemoryIdRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface MemoryIdRouteChildren {
-  MemoryIdEditRoute: typeof MemoryIdEditRoute
-}
-
-const MemoryIdRouteChildren: MemoryIdRouteChildren = {
-  MemoryIdEditRoute: MemoryIdEditRoute,
-}
-
-const MemoryIdRouteWithChildren = MemoryIdRoute._addFileChildren(
-  MemoryIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -296,8 +285,9 @@ const rootRouteChildren: RootRouteChildren = {
   QuotesRoute: QuotesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
-  MemoryIdRoute: MemoryIdRouteWithChildren,
+  MemoryIdRoute: MemoryIdRoute,
   MemoryNewRoute: MemoryNewRoute,
+  MemoryIdEditRoute: MemoryIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
