@@ -49,6 +49,27 @@ export async function uploadImages(userId: string, memoryId: string, files: File
 export const TAG_OPTIONS = ["Love", "Travel", "Birthday", "First Meet", "Special Day", "Anniversary", "Date Night", "Adventure"];
 export const MOOD_OPTIONS = ["❤️", "😊", "🥰", "🌙", "✨", "💐", "🍷", "🎂"];
 
+// Mood values can be:
+//  - a plain emoji string like "❤️"
+//  - or a sticker reference "sticker:<storage_path>"
+export function isStickerMood(mood: string | null | undefined): mood is string {
+  return !!mood && mood.startsWith("sticker:");
+}
+export function stickerPath(mood: string): string {
+  return mood.replace(/^sticker:/, "");
+}
+
+export async function uploadMoodSticker(userId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop() || "png";
+  const path = `${userId}/_mood/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("memory-images").upload(path, file, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (error) throw error;
+  return `sticker:${path}`;
+}
+
 export const LOVE_QUOTES = [
   "In all the world, there is no heart for me like yours.",
   "I love you not only for what you are, but for what I am when I am with you.",
