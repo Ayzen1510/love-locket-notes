@@ -96,7 +96,11 @@ export function MoodPickerInline({ value, onChange, userId }: { value: string; o
 export function MoodDisplay({ mood, size = 18 }: { mood: string | null | undefined; size?: number }) {
   if (!mood) return null;
   if (isStickerMood(mood)) {
-    return <StickerThumb path={stickerPath(mood)} className="rounded-md object-cover inline-block align-middle" />;
+    return (
+      <span className="inline-block align-middle" style={{ width: size + 6, height: size + 6 }}>
+        <StickerThumb path={stickerPath(mood)} className="rounded-md object-cover w-full h-full" />
+      </span>
+    );
   }
   return <span style={{ fontSize: size }}>{mood}</span>;
 }
