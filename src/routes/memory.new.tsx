@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { TAG_OPTIONS, uploadImages } from "@/lib/memories";
 import { MoodPickerInline } from "@/components/MoodPicker";
 import { toast } from "sonner";
-import { ArrowLeft, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Film } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 
@@ -117,11 +117,20 @@ function NewMemoryPage() {
         </div>
 
         <div className="glass-strong rounded-3xl p-4 space-y-3">
-          <Label>Photos</Label>
+              <Label>Photos & Videos</Label>
           <div className="grid grid-cols-3 gap-2">
-            {previews.map((src, i) => (
+            {previews.map((src, i) => {
+              const isVid = files[i]?.type.startsWith("video/");
+              return (
               <div key={i} className="relative aspect-square rounded-2xl overflow-hidden">
-                <img src={src} alt="" className="object-cover w-full h-full" />
+                {isVid ? (
+                  <>
+                    <video src={src} className="object-cover w-full h-full" muted playsInline />
+                    <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-black/55 text-white text-[10px] flex items-center gap-1"><Film className="w-3 h-3" /> Video</div>
+                  </>
+                ) : (
+                  <img src={src} alt="" className="object-cover w-full h-full" />
+                )}
                 <button
                   type="button"
                   onClick={() => setFiles((arr) => arr.filter((_, j) => j !== i))}
@@ -130,7 +139,8 @@ function NewMemoryPage() {
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ))}
+              );
+            })}
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
@@ -140,7 +150,7 @@ function NewMemoryPage() {
               <span className="text-[10px] mt-1">Add</span>
             </button>
           </div>
-          <input ref={fileInput} type="file" multiple accept="image/*" hidden onChange={onPick} />
+          <input ref={fileInput} type="file" multiple accept="image/*,video/*" hidden onChange={onPick} />
         </div>
 
         <Button type="submit" disabled={busy} className="w-full h-12 btn-romance rounded-2xl text-base">
