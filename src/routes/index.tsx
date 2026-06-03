@@ -82,13 +82,17 @@ function Home() {
       </header>
 
       {daysTogether !== null && (
-        <Link to="/profile" className="block mx-5 mb-5 glass-strong rounded-3xl p-5 relative overflow-hidden animate-fade-up">
-          <Sparkles className="absolute right-4 top-4 w-5 h-5 text-[var(--gold)] animate-sparkle" />
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Together for</p>
-          <p className="text-5xl font-display romance-text mt-1 flex items-baseline gap-2">
-            {daysTogether}<span className="text-base font-sans text-muted-foreground">days</span>
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Since {format(parseISO(profile!.relationship_start_date!), "MMMM d, yyyy")}</p>
+        <Link to="/profile" className="block mx-5 mb-5 glass-strong romance-ring rounded-3xl p-5 relative overflow-hidden animate-fade-up">
+          <div className="pointer-events-none absolute -inset-1 opacity-60 animate-drift" style={{ background: "var(--gradient-sunset)", filter: "blur(40px)" }} />
+          <div className="relative">
+            <Sparkles className="absolute right-0 top-0 w-5 h-5 text-[var(--gold)] animate-sparkle" />
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Together for</p>
+            <p className="text-6xl font-display romance-text mt-1 flex items-baseline gap-2 animate-breathe">
+              {daysTogether}<span className="text-base font-sans text-muted-foreground">days</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Since {format(parseISO(profile!.relationship_start_date!), "MMMM d, yyyy")}</p>
+          </div>
+          <div className="pointer-events-none absolute inset-0 animate-shimmer opacity-40" />
         </Link>
       )}
 

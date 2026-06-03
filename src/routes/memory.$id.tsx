@@ -6,9 +6,10 @@ import { useAuth } from "@/lib/auth";
 import { AppGate } from "@/components/AppGate";
 import { signedUrl } from "@/lib/memories";
 import type { Memory, MemoryImage } from "@/lib/memories";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Heart, Trash2, Calendar, X, Pencil } from "lucide-react";
+import { ArrowLeft, Heart, Trash2, Calendar, Pencil } from "lucide-react";
 import { MoodDisplay } from "@/components/MoodPicker";
+import { Slideshow } from "@/components/Slideshow";
+import { HeartParticles } from "@/components/HeartParticles";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
@@ -22,7 +23,6 @@ function MemoryDetail() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [lightbox, setLightbox] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["memory", id],
@@ -58,11 +58,6 @@ function MemoryDetail() {
     navigate({ to: "/" });
   }
 
-  useEffect(() => {
-    if (lightbox) document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, [lightbox]);
-
   if (isLoading || !data) {
     return <div className="min-h-screen flex items-center justify-center"><Heart className="w-8 h-8 text-primary animate-heart-pop" fill="currentColor" /></div>;
   }
@@ -70,7 +65,8 @@ function MemoryDetail() {
   const m = data.memory;
 
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-screen pb-12 relative">
+      <HeartParticles count={6} />
       <header className="px-5 pt-8 flex items-center justify-between">
         <button onClick={() => navigate({ to: "/" })} className="w-10 h-10 rounded-full glass flex items-center justify-center">
           <ArrowLeft className="w-5 h-5" />
@@ -79,7 +75,7 @@ function MemoryDetail() {
           <button onClick={() => navigate({ to: "/memory/$id/edit", params: { id } })} className="w-10 h-10 rounded-full glass text-foreground/70 flex items-center justify-center" aria-label="Edit">
             <Pencil className="w-4 h-4" />
           </button>
-          <button onClick={toggleFav} className={`w-10 h-10 rounded-full flex items-center justify-center transition ${m.is_favorite ? "romance-gradient text-white" : "glass text-foreground/70"}`}>
+          <button onClick={toggleFav} className={`w-10 h-10 rounded-full flex items-center justify-center transition ${m.is_favorite ? "romance-gradient text-white animate-heart-pop" : "glass text-foreground/70"}`}>
             <Heart className="w-5 h-5" fill={m.is_favorite ? "currentColor" : "none"} />
           </button>
           <button onClick={remove} className="w-10 h-10 rounded-full glass text-destructive flex items-center justify-center">
@@ -92,7 +88,7 @@ function MemoryDetail() {
         <p className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1">
           <Calendar className="w-3 h-3" /> {format(parseISO(m.memory_date), "EEEE, MMMM d, yyyy")}
         </p>
-        <h1 className="text-3xl font-display romance-text mt-1 flex items-center gap-2">
+        <h1 className="text-4xl font-display romance-text mt-1 flex items-center gap-2 animate-fade-up">
           {m.title} {m.mood && <MoodDisplay mood={m.mood} size={26} />}
         </h1>
         {m.tags?.length ? (
@@ -103,31 +99,16 @@ function MemoryDetail() {
       </article>
 
       {data.images.length > 0 && (
-        <div className="mt-5 px-5">
-          <div className="grid grid-cols-2 gap-2">
-            {data.images.map((im) => (
-              <button key={im.id} onClick={() => im.url && setLightbox(im.url)} className="aspect-square rounded-2xl overflow-hidden">
-                {im.url ? <img src={im.url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted animate-pulse" />}
-              </button>
-            ))}
-          </div>
+        <div className="mt-5 px-5 animate-fade-up">
+          <Slideshow items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
         </div>
       )}
 
       <section className="px-5 mt-6">
-        <div className="glass-strong rounded-3xl p-5">
+        <div className="glass-strong rounded-3xl p-5 animate-fade-up">
           <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{m.note || <span className="italic text-muted-foreground">No words, just the memory.</span>}</p>
         </div>
       </section>
-
-      {lightbox && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="" className="max-w-full max-h-full" />
-          <button className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/15 text-white flex items-center justify-center" onClick={() => setLightbox(null)}>
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

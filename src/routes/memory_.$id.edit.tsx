@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { TAG_OPTIONS, uploadImages, signedUrl } from "@/lib/memories";
+import { TAG_OPTIONS, uploadImages, signedUrl, isVideoPath } from "@/lib/memories";
 import type { Memory, MemoryImage } from "@/lib/memories";
 import { MoodPickerInline } from "@/components/MoodPicker";
-import { ArrowLeft, ImagePlus, X, Heart } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Heart, Film } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/memory_/$id/edit")({
@@ -160,33 +160,54 @@ function EditMemoryPage() {
         </div>
 
         <div className="glass-strong rounded-3xl p-4 space-y-3">
-          <Label>Photos</Label>
+          <Label>Photos & Videos</Label>
           <div className="grid grid-cols-3 gap-2">
             {existing.map((im) => (
               <div key={im.id} className="relative aspect-square rounded-2xl overflow-hidden">
-                {im.url ? <img src={im.url} alt="" className="object-cover w-full h-full" /> : <div className="w-full h-full bg-muted animate-pulse" />}
+                {im.url ? (
+                  isVideoPath(im.storage_path) ? (
+                    <>
+                      <video src={im.url} className="object-cover w-full h-full" muted playsInline preload="metadata" />
+                      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-black/55 text-white text-[10px] flex items-center gap-1"><Film className="w-3 h-3" /> Video</div>
+                    </>
+                  ) : (
+                    <img src={im.url} alt="" className="object-cover w-full h-full" />
+                  )
+                ) : (
+                  <div className="w-full h-full bg-muted animate-pulse" />
+                )}
                 <button type="button" onClick={() => removeExisting(im)}
                   className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ))}
-            {previews.map((src, i) => (
+            {previews.map((src, i) => {
+              const isVid = newFiles[i]?.type.startsWith("video/");
+              return (
               <div key={i} className="relative aspect-square rounded-2xl overflow-hidden">
-                <img src={src} alt="" className="object-cover w-full h-full" />
+                {isVid ? (
+                  <>
+                    <video src={src} className="object-cover w-full h-full" muted playsInline />
+                    <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-black/55 text-white text-[10px] flex items-center gap-1"><Film className="w-3 h-3" /> Video</div>
+                  </>
+                ) : (
+                  <img src={src} alt="" className="object-cover w-full h-full" />
+                )}
                 <button type="button" onClick={() => setNewFiles((arr) => arr.filter((_, j) => j !== i))}
                   className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ))}
+              );
+            })}
             <button type="button" onClick={() => fileInput.current?.click()}
               className="aspect-square rounded-2xl glass flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition">
               <ImagePlus className="w-6 h-6" />
               <span className="text-[10px] mt-1">Add</span>
             </button>
           </div>
-          <input ref={fileInput} type="file" multiple accept="image/*" hidden onChange={onPick} />
+          <input ref={fileInput} type="file" multiple accept="image/*,video/*" hidden onChange={onPick} />
         </div>
 
         <Button type="submit" disabled={busy} className="w-full h-12 btn-romance rounded-2xl text-base">
