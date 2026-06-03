@@ -26,11 +26,18 @@ export async function signedUrl(path: string): Promise<string | null> {
   return data?.signedUrl ?? null;
 }
 
+const VIDEO_EXT = ["mp4", "mov", "webm", "m4v", "ogg", "ogv", "qt"];
+export function isVideoPath(path: string): boolean {
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  return VIDEO_EXT.includes(ext);
+}
+
 export async function uploadImages(userId: string, memoryId: string, files: File[]) {
   const rows: { memory_id: string; user_id: string; storage_path: string; position: number }[] = [];
   let i = 0;
   for (const file of files) {
-    const ext = file.name.split(".").pop() || "jpg";
+    const isVid = file.type.startsWith("video/");
+    const ext = file.name.split(".").pop() || (isVid ? "mp4" : "jpg");
     const path = `${userId}/${memoryId}/${Date.now()}-${i}.${ext}`;
     const { error } = await supabase.storage.from("memory-images").upload(path, file, {
       contentType: file.type,
