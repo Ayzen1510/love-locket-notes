@@ -20,7 +20,7 @@ export function BottomNav() {
         <Link
           to="/memory/new"
           aria-label="Add memory"
-          className="-mt-7 w-14 h-14 rounded-full romance-gradient flex items-center justify-center shadow-[var(--shadow-romance)] hover:scale-105 active:scale-95 transition-transform"
+          className="-mt-7 w-14 h-14 rounded-full romance-gradient flex items-center justify-center shadow-[var(--shadow-romance)] hover:scale-105 active:scale-95 transition-transform animate-pulse-glow"
         >
           <Plus className="w-7 h-7 text-white" />
         </Link>
