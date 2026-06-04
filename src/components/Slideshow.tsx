@@ -52,6 +52,8 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
   const [showSettings, setShowSettings] = useState(false);
   const touchX = useRef<number | null>(null);
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+  const stageRef = useRef<HTMLDivElement>(null);
+  const fsCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     try { window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ }
@@ -97,6 +99,7 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
 
   useEffect(() => {
     if (!fs) return;
+    fsCloseRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setFs(false);
       else if (e.key === "ArrowRight") go(1);
@@ -111,10 +114,24 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
     };
   }, [fs, playing]);
 
+  // In-page keyboard support (when stage is focused)
+  function onStageKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+    else if (e.key.toLowerCase() === "f") { e.preventDefault(); setFs((v) => !v); }
+  }
+
   if (!items.length) return null;
 
   const Stage = (
     <div
+      ref={stageRef}
+      role="region"
+      aria-label="Memory slideshow"
+      aria-roledescription="carousel"
+      tabIndex={0}
+      onKeyDown={onStageKeyDown}
       className={`relative w-full ${fs ? "h-screen rounded-none" : "aspect-[4/5] rounded-3xl"} overflow-hidden bg-black/20 [perspective:1200px]`}
       onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
       onTouchEnd={(e) => {
@@ -133,6 +150,9 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
             key={it.id}
             className={`absolute inset-0 transition-all duration-700 ease-out [transform-style:preserve-3d] ${tCls}`}
             aria-hidden={!active}
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`${idx + 1} of ${items.length}`}
           >
             {it.url ? (
               isVid ? (
@@ -162,14 +182,14 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
         <>
           <button
             onClick={() => go(-1)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
             aria-label="Previous"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={() => go(1)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
             aria-label="Next"
           >
             <ChevronRight className="w-5 h-5" />
@@ -180,22 +200,26 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
       <div className="absolute top-3 right-3 z-30 flex gap-2">
         <button
           onClick={() => setPlaying(!playing)}
-          className="w-9 h-9 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center"
-          aria-label={playing ? "Pause" : "Play"}
+          className="w-11 h-11 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
+          aria-label={playing ? "Pause slideshow" : "Play slideshow"}
+          aria-pressed={playing}
         >
           {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" fill="currentColor" />}
         </button>
         <button
           onClick={() => setShowSettings((s) => !s)}
-          className={`w-9 h-9 rounded-full backdrop-blur text-white flex items-center justify-center transition ${showSettings ? "bg-white/50" : "bg-white/25 hover:bg-white/40"}`}
+          className={`w-11 h-11 rounded-full backdrop-blur text-white flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 ${showSettings ? "bg-white/50" : "bg-white/25 hover:bg-white/40"}`}
           aria-label="Slideshow settings"
+          aria-expanded={showSettings}
+          aria-haspopup="dialog"
         >
           <Settings className="w-4 h-4" />
         </button>
         <button
+          ref={fsCloseRef}
           onClick={() => setFs((v) => !v)}
-          className="w-9 h-9 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center"
-          aria-label="Fullscreen"
+          className="w-11 h-11 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
+          aria-label={fs ? "Exit fullscreen" : "Enter fullscreen"}
         >
           {fs ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </button>
@@ -215,8 +239,9 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
             <button
               key={idx}
               onClick={() => jumpTo(idx)}
-              className={`h-1.5 rounded-full transition-all ${idx === safeI ? "w-6 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"}`}
+              className={`h-2 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 ${idx === safeI ? "w-6 bg-white" : "w-2 bg-white/50 hover:bg-white/80"}`}
               aria-label={`Slide ${idx + 1}`}
+              aria-current={idx === safeI ? "true" : undefined}
             />
           ))}
         </div>
@@ -234,7 +259,12 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
 
   if (fs) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Fullscreen slideshow"
+      >
         <div className="w-full max-w-4xl">{Stage}</div>
       </div>
     );

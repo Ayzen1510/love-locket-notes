@@ -9,6 +9,7 @@ import type { Memory, MemoryImage } from "@/lib/memories";
 import { ArrowLeft, Heart, Trash2, Calendar, Pencil } from "lucide-react";
 import { MoodDisplay } from "@/components/MoodPicker";
 import { Slideshow } from "@/components/Slideshow";
+import { Gallery } from "@/components/Gallery";
 import { HeartParticles } from "@/components/HeartParticles";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -23,6 +24,7 @@ function MemoryDetail() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [view, setView] = useState<"slideshow" | "gallery">("slideshow");
 
   const { data, isLoading } = useQuery({
     queryKey: ["memory", id],
@@ -100,7 +102,26 @@ function MemoryDetail() {
 
       {data.images.length > 0 && (
         <div className="mt-5 px-5 animate-fade-up">
-          <Slideshow items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
+          <div className="flex justify-center mb-3" role="tablist" aria-label="Media view">
+            <div className="glass rounded-full p-1 inline-flex gap-1">
+              {(["slideshow", "gallery"] as const).map((v) => (
+                <button
+                  key={v}
+                  role="tab"
+                  aria-selected={view === v}
+                  onClick={() => setView(v)}
+                  className={`px-4 py-1.5 text-xs rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${view === v ? "bg-primary text-primary-foreground shadow" : "text-foreground/70 hover:text-foreground"}`}
+                >
+                  {v === "slideshow" ? "Slideshow" : "Gallery"}
+                </button>
+              ))}
+            </div>
+          </div>
+          {view === "slideshow" ? (
+            <Slideshow items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
+          ) : (
+            <Gallery items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
+          )}
         </div>
       )}
 
