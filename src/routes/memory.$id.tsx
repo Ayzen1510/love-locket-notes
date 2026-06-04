@@ -6,10 +6,9 @@ import { useAuth } from "@/lib/auth";
 import { AppGate } from "@/components/AppGate";
 import { signedUrl } from "@/lib/memories";
 import type { Memory, MemoryImage } from "@/lib/memories";
-import { ArrowLeft, Heart, Trash2, Calendar, Pencil } from "lucide-react";
+import { ArrowLeft, Heart, Trash2, Calendar, Pencil, Maximize2, X } from "lucide-react";
 import { MoodDisplay } from "@/components/MoodPicker";
 import { Slideshow } from "@/components/Slideshow";
-import { Gallery } from "@/components/Gallery";
 import { HeartParticles } from "@/components/HeartParticles";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -24,7 +23,7 @@ function MemoryDetail() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [view, setView] = useState<"slideshow" | "gallery">("slideshow");
+  const [readerOpen, setReaderOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["memory", id],
@@ -40,6 +39,17 @@ function MemoryDetail() {
       return { memory: mem as Memory, images: urls as (MemoryImage & { url: string | null })[] };
     },
   });
+
+  useEffect(() => {
+    if (!readerOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setReaderOpen(false); };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [readerOpen]);
 
   async function toggleFav() {
     if (!data?.memory) return;
@@ -67,31 +77,46 @@ function MemoryDetail() {
   const m = data.memory;
 
   return (
-    <div className="min-h-screen pb-12 relative">
+    <div className="min-h-screen pb-16 relative overflow-x-hidden">
       <HeartParticles count={6} />
-      <header className="px-5 pt-8 flex items-center justify-between">
-        <button onClick={() => navigate({ to: "/" })} className="w-10 h-10 rounded-full glass flex items-center justify-center">
+
+      <header className="px-4 sm:px-5 pt-6 sm:pt-8 flex items-center justify-between gap-2">
+        <button
+          onClick={() => navigate({ to: "/" })}
+          className="w-10 h-10 rounded-full glass flex items-center justify-center shrink-0"
+          aria-label="Back"
+        >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate({ to: "/memory/$id/edit", params: { id } })} className="w-10 h-10 rounded-full glass text-foreground/70 flex items-center justify-center" aria-label="Edit">
+          <button
+            onClick={() => navigate({ to: "/memory/$id/edit", params: { id } })}
+            className="w-10 h-10 rounded-full glass text-foreground/70 flex items-center justify-center"
+            aria-label="Edit"
+          >
             <Pencil className="w-4 h-4" />
           </button>
-          <button onClick={toggleFav} className={`w-10 h-10 rounded-full flex items-center justify-center transition ${m.is_favorite ? "romance-gradient text-white animate-heart-pop" : "glass text-foreground/70"}`}>
+          <button
+            onClick={toggleFav}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition ${m.is_favorite ? "romance-gradient text-white animate-heart-pop" : "glass text-foreground/70"}`}
+            aria-label="Favorite"
+          >
             <Heart className="w-5 h-5" fill={m.is_favorite ? "currentColor" : "none"} />
           </button>
-          <button onClick={remove} className="w-10 h-10 rounded-full glass text-destructive flex items-center justify-center">
+          <button onClick={remove} className="w-10 h-10 rounded-full glass text-destructive flex items-center justify-center" aria-label="Delete">
             <Trash2 className="w-5 h-5" />
           </button>
         </div>
       </header>
 
-      <article className="px-5 mt-6">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+      {/* Title block */}
+      <article className="px-4 sm:px-5 mt-5 sm:mt-6 max-w-2xl mx-auto">
+        <p className="text-[11px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
           <Calendar className="w-3 h-3" /> {format(parseISO(m.memory_date), "EEEE, MMMM d, yyyy")}
         </p>
-        <h1 className="text-4xl font-display romance-text mt-1 flex items-center gap-2 animate-fade-up">
-          {m.title} {m.mood && <MoodDisplay mood={m.mood} size={26} />}
+        <h1 className="text-3xl sm:text-4xl font-display romance-text mt-1 flex items-center gap-2 animate-fade-up break-words">
+          <span className="min-w-0">{m.title}</span>
+          {m.mood && <MoodDisplay mood={m.mood} size={26} />}
         </h1>
         {m.tags?.length ? (
           <div className="flex gap-1.5 flex-wrap mt-3">
@@ -100,36 +125,79 @@ function MemoryDetail() {
         ) : null}
       </article>
 
+      {/* Slideshow section */}
       {data.images.length > 0 && (
-        <div className="mt-5 px-5 animate-fade-up">
-          <div className="flex justify-center mb-3" role="tablist" aria-label="Media view">
-            <div className="glass rounded-full p-1 inline-flex gap-1">
-              {(["slideshow", "gallery"] as const).map((v) => (
-                <button
-                  key={v}
-                  role="tab"
-                  aria-selected={view === v}
-                  onClick={() => setView(v)}
-                  className={`px-4 py-1.5 text-xs rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${view === v ? "bg-primary text-primary-foreground shadow" : "text-foreground/70 hover:text-foreground"}`}
-                >
-                  {v === "slideshow" ? "Slideshow" : "Gallery"}
-                </button>
-              ))}
-            </div>
-          </div>
-          {view === "slideshow" ? (
-            <Slideshow items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
-          ) : (
-            <Gallery items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
-          )}
-        </div>
+        <section className="mt-5 px-4 sm:px-5 max-w-2xl mx-auto animate-fade-up">
+          <Slideshow items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
+        </section>
       )}
 
-      <section className="px-5 mt-6">
-        <div className="glass-strong rounded-3xl p-5 animate-fade-up">
-          <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{m.note || <span className="italic text-muted-foreground">No words, just the memory.</span>}</p>
+      {/* Story / text card — separate, glassmorphism, click to expand */}
+      <section className="mt-6 px-4 sm:px-5 max-w-2xl mx-auto">
+        <div className="glass-strong rounded-3xl p-5 sm:p-7 animate-fade-up relative group">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Our story</p>
+            {m.note && (
+              <button
+                onClick={() => setReaderOpen(true)}
+                className="text-[11px] inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Open story fullscreen"
+              >
+                <Maximize2 className="w-3 h-3" /> Read
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => m.note && setReaderOpen(true)}
+            disabled={!m.note}
+            className="text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl"
+          >
+            <p className="whitespace-pre-wrap leading-[1.8] text-[15px] sm:text-base text-foreground/90 line-clamp-[12] break-words">
+              {m.note || <span className="italic text-muted-foreground">No words, just the memory.</span>}
+            </p>
+            {m.note && m.note.length > 280 && (
+              <span className="mt-3 inline-block text-xs text-primary">Tap to read full story →</span>
+            )}
+          </button>
         </div>
       </section>
+
+      {/* Fullscreen text reader */}
+      {readerOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Story reader"
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl animate-fade-up flex flex-col"
+          onClick={(e) => { if (e.target === e.currentTarget) setReaderOpen(false); }}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                {format(parseISO(m.memory_date), "MMMM d, yyyy")}
+              </p>
+              <h2 className="text-xl sm:text-2xl font-display romance-text truncate">{m.title}</h2>
+            </div>
+            <button
+              onClick={() => setReaderOpen(false)}
+              className="w-11 h-11 rounded-full glass flex items-center justify-center shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label="Close reader"
+              autoFocus
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-6">
+            <div className="max-w-2xl mx-auto">
+              <p className="whitespace-pre-wrap leading-[1.9] text-lg sm:text-xl text-foreground/90 font-light break-words">
+                {m.note}
+              </p>
+              <div className="h-12" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
