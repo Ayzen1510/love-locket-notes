@@ -4,11 +4,11 @@ import { isVideoPath } from "@/lib/memories";
 
 export type SlideItem = { id: string; path: string; url: string | null };
 
-type Transition = "fade" | "slide" | "zoom" | "flip";
+type Transition = "fade" | "slide" | "zoom";
 type Prefs = { transition: Transition; speed: number; playing: boolean };
 
 const PREFS_KEY = "cml:slideshow-prefs";
-const DEFAULT_PREFS: Prefs = { transition: "fade", speed: 4, playing: true };
+const DEFAULT_PREFS: Prefs = { transition: "fade", speed: 5, playing: false };
 
 function loadPrefs(): Prefs {
   if (typeof window === "undefined") return DEFAULT_PREFS;
@@ -17,30 +17,26 @@ function loadPrefs(): Prefs {
     if (!raw) return DEFAULT_PREFS;
     const p = JSON.parse(raw);
     return {
-      transition: (["fade", "slide", "zoom", "flip"] as Transition[]).includes(p.transition) ? p.transition : DEFAULT_PREFS.transition,
+      transition: (["fade", "slide", "zoom"] as Transition[]).includes(p.transition) ? p.transition : DEFAULT_PREFS.transition,
       speed: typeof p.speed === "number" && p.speed >= 2 && p.speed <= 12 ? p.speed : DEFAULT_PREFS.speed,
-      playing: typeof p.playing === "boolean" ? p.playing : true,
+      playing: typeof p.playing === "boolean" ? p.playing : false,
     };
   } catch {
     return DEFAULT_PREFS;
   }
 }
 
-function transitionClasses(t: Transition, active: boolean, dir: 1 | -1): string {
+function slideClasses(t: Transition, active: boolean, dir: 1 | -1): string {
   switch (t) {
     case "slide":
       return active
         ? "opacity-100 translate-x-0 z-10"
-        : `opacity-0 z-0 ${dir === 1 ? "-translate-x-full" : "translate-x-full"}`;
+        : `opacity-0 z-0 ${dir === 1 ? "-translate-x-8" : "translate-x-8"}`;
     case "zoom":
-      return active ? "opacity-100 scale-100 z-10" : "opacity-0 scale-125 z-0";
-    case "flip":
-      return active
-        ? "opacity-100 [transform:rotateY(0deg)] z-10"
-        : "opacity-0 [transform:rotateY(90deg)] z-0";
+      return active ? "opacity-100 scale-100 z-10" : "opacity-0 scale-105 z-0";
     case "fade":
     default:
-      return active ? "opacity-100 scale-100 z-10" : "opacity-0 scale-105 z-0";
+      return active ? "opacity-100 z-10" : "opacity-0 z-0";
   }
 }
 
@@ -52,7 +48,6 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
   const [showSettings, setShowSettings] = useState(false);
   const touchX = useRef<number | null>(null);
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
-  const stageRef = useRef<HTMLDivElement>(null);
   const fsCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -78,7 +73,7 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
     setI(idx);
   }
 
-  // autoplay (skip when current is a video — videos advance via onEnded)
+  // autoplay
   useEffect(() => {
     if (!playing || !current) return;
     if (isVideoPath(current.path)) return;
@@ -86,17 +81,18 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
     return () => clearTimeout(id);
   }, [playing, prefs.speed, safeI, current?.path, items.length]);
 
-  // pause inactive videos & reset active video to start
+  // pause/reset inactive videos
   useEffect(() => {
     Object.entries(videoRefs.current).forEach(([id, vid]) => {
       if (!vid) return;
       if (id !== current?.id) {
         vid.pause();
+        try { vid.currentTime = 0; } catch { /* ignore */ }
       }
-      try { vid.currentTime = 0; } catch { /* ignore */ }
     });
   }, [safeI, current?.id]);
 
+  // fullscreen keyboard
   useEffect(() => {
     if (!fs) return;
     fsCloseRef.current?.focus();
@@ -114,162 +110,227 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
     };
   }, [fs, playing]);
 
-  // In-page keyboard support (when stage is focused)
-  function onStageKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
-    else if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
-    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
-    else if (e.key.toLowerCase() === "f") { e.preventDefault(); setFs((v) => !v); }
-  }
-
   if (!items.length) return null;
 
-  const Stage = (
-    <div
-      ref={stageRef}
-      role="region"
-      aria-label="Memory slideshow"
-      aria-roledescription="carousel"
-      tabIndex={0}
-      onKeyDown={onStageKeyDown}
-      className={`relative w-full ${fs ? "h-screen rounded-none" : "aspect-[4/5] rounded-3xl"} overflow-hidden bg-black/20 [perspective:1200px]`}
-      onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
-      onTouchEnd={(e) => {
-        if (touchX.current == null) return;
-        const dx = e.changedTouches[0].clientX - touchX.current;
-        if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
-        touchX.current = null;
-      }}
-    >
-      {items.map((it, idx) => {
-        const active = idx === safeI;
-        const isVid = isVideoPath(it.path);
-        const tCls = transitionClasses(prefs.transition, active, dir);
-        return (
-          <div
-            key={it.id}
-            className={`absolute inset-0 transition-all duration-700 ease-out [transform-style:preserve-3d] ${tCls}`}
-            aria-hidden={!active}
-            role="group"
-            aria-roledescription="slide"
-            aria-label={`${idx + 1} of ${items.length}`}
-          >
-            {it.url ? (
-              isVid ? (
-                <video
-                  ref={(el) => { videoRefs.current[it.id] = el; }}
-                  src={it.url}
-                  className="w-full h-full object-cover"
-                  controls={active}
-                  playsInline
-                  preload="metadata"
-                  onEnded={() => active && playing && go(1)}
-                />
-              ) : (
-                <img src={it.url} alt="" className="w-full h-full object-cover" />
-              )
-            ) : (
-              <div className="w-full h-full bg-muted animate-pulse" />
-            )}
-            {!isVid && (
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
-            )}
-          </div>
-        );
-      })}
-
-      {items.length > 1 && (
-        <>
-          <button
-            onClick={() => go(-1)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
-            aria-label="Previous"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => go(1)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
-            aria-label="Next"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </>
-      )}
-
-      <div className="absolute top-3 right-3 z-30 flex gap-2">
-        <button
-          onClick={() => setPlaying(!playing)}
-          className="w-11 h-11 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
-          aria-label={playing ? "Pause slideshow" : "Play slideshow"}
-          aria-pressed={playing}
-        >
-          {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" fill="currentColor" />}
-        </button>
-        <button
-          onClick={() => setShowSettings((s) => !s)}
-          className={`w-11 h-11 rounded-full backdrop-blur text-white flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 ${showSettings ? "bg-white/50" : "bg-white/25 hover:bg-white/40"}`}
-          aria-label="Slideshow settings"
-          aria-expanded={showSettings}
-          aria-haspopup="dialog"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
-        <button
-          ref={fsCloseRef}
-          onClick={() => setFs((v) => !v)}
-          className="w-11 h-11 rounded-full bg-white/25 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
-          aria-label={fs ? "Exit fullscreen" : "Enter fullscreen"}
-        >
-          {fs ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-        </button>
-      </div>
-
-      {showSettings && (
-        <SettingsPanel
-          prefs={prefs}
-          onChange={(p) => setPrefs(p)}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-
-      {items.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-          {items.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => jumpTo(idx)}
-              className={`h-2 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 ${idx === safeI ? "w-6 bg-white" : "w-2 bg-white/50 hover:bg-white/80"}`}
-              aria-label={`Slide ${idx + 1}`}
-              aria-current={idx === safeI ? "true" : undefined}
-            />
-          ))}
-        </div>
-      )}
-
-      {playing && current && !isVideoPath(current.path) && items.length > 1 && (
-        <div
-          key={`progress-${safeI}-${prefs.speed}`}
-          className="absolute top-0 left-0 h-1 bg-white/80 z-20 origin-left"
-          style={{ animation: `slideshow-progress ${prefs.speed}s linear forwards` }}
-        />
-      )}
-    </div>
-  );
-
-  if (fs) {
+  const Slide = ({ active, idx, it, contain }: { active: boolean; idx: number; it: SlideItem; contain: boolean }) => {
+    const isVid = isVideoPath(it.path);
     return (
       <div
-        className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Fullscreen slideshow"
+        className={`absolute inset-0 transition-all duration-700 ease-out ${slideClasses(prefs.transition, active, dir)}`}
+        aria-hidden={!active}
+        role="group"
+        aria-roledescription="slide"
+        aria-label={`${idx + 1} of ${items.length}`}
       >
-        <div className="w-full max-w-4xl">{Stage}</div>
+        {it.url ? (
+          isVid ? (
+            <video
+              ref={(el) => { videoRefs.current[it.id] = el; }}
+              src={it.url}
+              className={`w-full h-full ${contain ? "object-contain" : "object-contain"}`}
+              controls={active}
+              playsInline
+              preload="metadata"
+              onEnded={() => active && playing && go(1)}
+            />
+          ) : (
+            <img
+              src={it.url}
+              alt=""
+              className="w-full h-full object-contain select-none"
+              draggable={false}
+            />
+          )
+        ) : (
+          <div className="w-full h-full bg-muted/40 animate-pulse" />
+        )}
       </div>
     );
-  }
-  return Stage;
+  };
+
+  return (
+    <>
+      {/* In-page stage */}
+      <div
+        role="region"
+        aria-label="Memory slideshow"
+        aria-roledescription="carousel"
+        className="relative w-full aspect-[4/5] sm:aspect-[16/10] overflow-hidden rounded-3xl glass-strong"
+        onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+        onTouchEnd={(e) => {
+          if (touchX.current == null) return;
+          const dx = e.changedTouches[0].clientX - touchX.current;
+          if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+          touchX.current = null;
+        }}
+      >
+        {/* soft backdrop using current image blurred */}
+        {current?.url && !isVideoPath(current.path) && (
+          <div
+            aria-hidden
+            className="absolute inset-0 scale-110 blur-2xl opacity-50 transition-all duration-700"
+            style={{ backgroundImage: `url(${current.url})`, backgroundSize: "cover", backgroundPosition: "center" }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/20" />
+
+        {items.map((it, idx) => (
+          <button
+            key={it.id}
+            type="button"
+            onClick={() => !isVideoPath(it.path) && idx === safeI && setFs(true)}
+            className={`absolute inset-0 ${idx === safeI && !isVideoPath(it.path) ? "cursor-zoom-in" : "cursor-default"} focus:outline-none`}
+            tabIndex={idx === safeI ? 0 : -1}
+            aria-label={idx === safeI ? "Open image fullscreen" : undefined}
+          >
+            <Slide active={idx === safeI} idx={idx} it={it} contain />
+          </button>
+        ))}
+
+        {items.length > 1 && (
+          <>
+            <button
+              onClick={() => go(-1)}
+              className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/30 hover:bg-white/50 backdrop-blur text-white flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Previous"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => go(1)}
+              className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/30 hover:bg-white/50 backdrop-blur text-white flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Next"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
+
+        {/* Top controls */}
+        <div className="absolute top-3 right-3 z-30 flex gap-2">
+          {items.length > 1 && (
+            <button
+              onClick={() => setPlaying(!playing)}
+              className="w-10 h-10 rounded-full bg-white/30 hover:bg-white/50 backdrop-blur text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label={playing ? "Pause" : "Play"}
+              aria-pressed={playing}
+            >
+              {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" fill="currentColor" />}
+            </button>
+          )}
+          <button
+            onClick={() => setShowSettings((s) => !s)}
+            className={`w-10 h-10 rounded-full backdrop-blur text-white flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${showSettings ? "bg-white/60" : "bg-white/30 hover:bg-white/50"}`}
+            aria-label="Slideshow settings"
+            aria-expanded={showSettings}
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setFs(true)}
+            className="w-10 h-10 rounded-full bg-white/30 hover:bg-white/50 backdrop-blur text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label="Open fullscreen"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        {showSettings && (
+          <SettingsPanel prefs={prefs} onChange={setPrefs} onClose={() => setShowSettings(false)} />
+        )}
+
+        {/* counter */}
+        <div className="absolute top-3 left-3 z-20 text-[11px] px-2.5 py-1 rounded-full bg-black/40 text-white backdrop-blur tabular-nums">
+          {safeI + 1} / {items.length}
+        </div>
+
+        {/* dots */}
+        {items.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 px-3 py-1.5 rounded-full bg-black/30 backdrop-blur">
+            {items.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => jumpTo(idx)}
+                className={`h-2 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${idx === safeI ? "w-6 bg-white" : "w-2 bg-white/50 hover:bg-white/80"}`}
+                aria-label={`Slide ${idx + 1}`}
+                aria-current={idx === safeI ? "true" : undefined}
+              />
+            ))}
+          </div>
+        )}
+
+        {playing && current && !isVideoPath(current.path) && items.length > 1 && (
+          <div
+            key={`progress-${safeI}-${prefs.speed}`}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-white/80 z-20 origin-left"
+            style={{ animation: `slideshow-progress ${prefs.speed}s linear forwards` }}
+          />
+        )}
+      </div>
+
+      {/* Fullscreen modal */}
+      {fs && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center animate-fade-up"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Fullscreen image viewer"
+          onClick={(e) => { if (e.target === e.currentTarget) setFs(false); }}
+        >
+          <button
+            ref={fsCloseRef}
+            onClick={() => setFs(false)}
+            className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label="Close fullscreen"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {items.length > 1 && (
+            <>
+              <button
+                onClick={() => go(-1)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => go(1)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Next"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
+
+          <div
+            className="relative w-full h-full flex items-center justify-center p-4 sm:p-10"
+            onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+            onTouchEnd={(e) => {
+              if (touchX.current == null) return;
+              const dx = e.changedTouches[0].clientX - touchX.current;
+              if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+              touchX.current = null;
+            }}
+          >
+            {current?.url ? (
+              isVideoPath(current.path) ? (
+                <video src={current.url} controls autoPlay playsInline className="max-w-full max-h-full rounded-2xl" />
+              ) : (
+                <img src={current.url} alt="" className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" />
+              )
+            ) : null}
+          </div>
+
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-xs tabular-nums px-3 py-1 rounded-full bg-white/10 backdrop-blur">
+            {safeI + 1} / {items.length}
+          </p>
+        </div>
+      )}
+    </>
+  );
 }
 
 function SettingsPanel({
@@ -283,10 +344,9 @@ function SettingsPanel({
     { id: "fade", label: "Fade" },
     { id: "slide", label: "Slide" },
     { id: "zoom", label: "Zoom" },
-    { id: "flip", label: "Flip" },
   ];
   return (
-    <div className="absolute top-14 right-3 z-40 w-64 rounded-2xl bg-black/75 backdrop-blur-xl text-white p-3 shadow-2xl border border-white/10 animate-fade-up">
+    <div className="absolute top-14 right-3 z-40 w-60 rounded-2xl bg-black/75 backdrop-blur-xl text-white p-3 shadow-2xl border border-white/10 animate-fade-up">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs uppercase tracking-widest text-white/70">Slideshow</p>
         <button onClick={onClose} aria-label="Close" className="w-6 h-6 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center">
@@ -295,7 +355,7 @@ function SettingsPanel({
       </div>
 
       <p className="text-[11px] text-white/70 mt-2 mb-1">Transition</p>
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid grid-cols-3 gap-1">
         {transitions.map((t) => (
           <button
             key={t.id}
@@ -312,17 +372,11 @@ function SettingsPanel({
         <p className="text-[11px] text-white">{prefs.speed}s</p>
       </div>
       <input
-        type="range"
-        min={2}
-        max={12}
-        step={1}
+        type="range" min={2} max={12} step={1}
         value={prefs.speed}
         onChange={(e) => onChange({ ...prefs, speed: Number(e.target.value) })}
         className="w-full accent-white"
       />
-      <div className="flex justify-between text-[10px] text-white/50 mt-0.5">
-        <span>Fast</span><span>Slow</span>
-      </div>
 
       <label className="mt-3 flex items-center justify-between text-xs">
         <span className="text-white/80">Autoplay</span>
