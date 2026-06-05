@@ -129,7 +129,7 @@ export function Gallery({ items }: { items: SlideItem[] }) {
                   alt=""
                   draggable={false}
                   onLoad={() => setLoaded(true)}
-                  className={`max-w-full max-h-full w-auto h-auto object-contain transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+                  className={`max-w-full max-h-full w-auto h-auto object-contain ${loaded ? "animate-fade-in opacity-100" : "opacity-0"}`}
                   style={{ WebkitUserSelect: "none" }}
                 />
               )
