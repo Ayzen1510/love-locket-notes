@@ -233,6 +233,7 @@ export type Database = {
         Returns: boolean
       }
       my_pair_id: { Args: { _user_id: string }; Returns: string }
+      redeem_couple_invite: { Args: { _code: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
