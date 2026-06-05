@@ -306,7 +306,7 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
           )}
 
           <div
-            className="relative w-full h-full flex items-center justify-center p-4 sm:p-10"
+            className="relative w-screen h-screen flex items-center justify-center"
             onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
             onTouchEnd={(e) => {
               if (touchX.current == null) return;
@@ -317,9 +317,9 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
           >
             {current?.url ? (
               isVideoPath(current.path) ? (
-                <video src={current.url} controls autoPlay playsInline className="max-w-full max-h-full rounded-2xl" />
+                <video src={current.url} controls autoPlay playsInline className="w-screen h-screen object-contain" />
               ) : (
-                <img src={current.url} alt="" className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" />
+                <img src={current.url} alt="" className="w-screen h-screen object-contain select-none" draggable={false} />
               )
             ) : null}
           </div>

@@ -65,7 +65,7 @@ export function Gallery({ items }: { items: SlideItem[] }) {
           role="dialog"
           aria-modal="true"
           aria-label="Photo viewer"
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 animate-fade-up"
+          className="fixed inset-0 z-50 bg-black flex items-center justify-center animate-fade-up"
         >
           <button
             ref={closeBtnRef}
@@ -95,12 +95,12 @@ export function Gallery({ items }: { items: SlideItem[] }) {
             </>
           )}
 
-          <div className="max-w-5xl max-h-[85vh] w-full flex items-center justify-center">
+          <div className="w-screen h-screen flex items-center justify-center">
             {active.url ? (
               isVideoPath(active.path) ? (
-                <video src={active.url} controls autoPlay playsInline className="max-w-full max-h-[85vh] rounded-2xl" />
+                <video src={active.url} controls autoPlay playsInline className="w-screen h-screen object-contain" />
               ) : (
-                <img src={active.url} alt="" className="max-w-full max-h-[85vh] object-contain rounded-2xl" />
+                <img src={active.url} alt="" className="w-screen h-screen object-contain select-none" draggable={false} />
               )
             ) : null}
           </div>
