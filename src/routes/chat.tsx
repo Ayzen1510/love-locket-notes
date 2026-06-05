@@ -83,14 +83,8 @@ function PairingScreen({ onPaired }: { onPaired: () => void }) {
     if (!code) return;
     setBusy(true);
     try {
-      const { data: inv, error: e1 } = await db.from("couple_invites").select("*").eq("code", code).maybeSingle();
-      if (e1) throw e1;
-      if (!inv) throw new Error("Invalid code");
-      if (inv.used_at) throw new Error("Code already used");
-      if (inv.inviter_id === user.id) throw new Error("That's your own code 😊");
-      const { error: e2 } = await db.from("couple_pairs").insert({ user_a: inv.inviter_id, user_b: user.id });
-      if (e2) throw e2;
-      await db.from("couple_invites").update({ used_at: new Date().toISOString() }).eq("code", code);
+      const { error } = await db.rpc("redeem_couple_invite", { _code: code });
+      if (error) throw error;
       toast.success("Paired! 💞");
       onPaired();
     } catch (err) {
