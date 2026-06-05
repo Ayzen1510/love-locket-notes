@@ -9,6 +9,7 @@ import type { Memory, MemoryImage } from "@/lib/memories";
 import { ArrowLeft, Heart, Trash2, Calendar, Pencil, Maximize2, X } from "lucide-react";
 import { MoodDisplay } from "@/components/MoodPicker";
 import { Slideshow } from "@/components/Slideshow";
+import { Gallery } from "@/components/Gallery";
 import { HeartParticles } from "@/components/HeartParticles";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -24,6 +25,7 @@ function MemoryDetail() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [readerOpen, setReaderOpen] = useState(false);
+  const [view, setView] = useState<"slideshow" | "gallery">("slideshow");
 
   const { data, isLoading } = useQuery({
     queryKey: ["memory", id],
@@ -128,7 +130,29 @@ function MemoryDetail() {
       {/* Slideshow section */}
       {data.images.length > 0 && (
         <section className="mt-5 px-4 sm:px-5 max-w-2xl mx-auto animate-fade-up">
-          <Slideshow items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
+          <div className="flex justify-center mb-3">
+            <div className="glass rounded-full p-1 inline-flex text-xs">
+              <button
+                onClick={() => setView("slideshow")}
+                className={`px-4 py-1.5 rounded-full transition ${view === "slideshow" ? "bg-primary text-primary-foreground shadow" : "text-foreground/70 hover:text-foreground"}`}
+                aria-pressed={view === "slideshow"}
+              >
+                Slideshow
+              </button>
+              <button
+                onClick={() => setView("gallery")}
+                className={`px-4 py-1.5 rounded-full transition ${view === "gallery" ? "bg-primary text-primary-foreground shadow" : "text-foreground/70 hover:text-foreground"}`}
+                aria-pressed={view === "gallery"}
+              >
+                Gallery
+              </button>
+            </div>
+          </div>
+          {view === "slideshow" ? (
+            <Slideshow items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
+          ) : (
+            <Gallery items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
+          )}
         </section>
       )}
 
