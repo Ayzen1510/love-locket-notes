@@ -134,25 +134,40 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_at: string | null
+          edited_at: string | null
           id: string
           image_path: string | null
           pair_id: string
+          reactions: Json
+          read_at: string | null
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           image_path?: string | null
           pair_id: string
+          reactions?: Json
+          read_at?: string | null
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           image_path?: string | null
           pair_id?: string
+          reactions?: Json
+          read_at?: string | null
+          reply_to_id?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -161,6 +176,13 @@ export type Database = {
             columns: ["pair_id"]
             isOneToOne: false
             referencedRelation: "couple_pairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]
