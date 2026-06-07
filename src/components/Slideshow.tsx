@@ -49,7 +49,6 @@ export function Slideshow({ items, meta }: { items: SlideItem[]; meta?: { captio
   const [showSettings, setShowSettings] = useState(false);
   const touchX = useRef<number | null>(null);
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
-  const fsCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     try { window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ }
