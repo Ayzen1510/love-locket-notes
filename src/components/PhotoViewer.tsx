@@ -77,7 +77,7 @@ export function PhotoViewer({ items, index, onClose, onIndexChange }: Props) {
   // reset on index change
   useEffect(() => { setScale(1); setTx(0); setTy(0); setLoaded(false); setShowChrome(true); }, [i]);
 
-  function dist(a: Touch, b: Touch) { return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
+  function dist(a: React.Touch, b: React.Touch) { return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
 
   function onTouchStart(e: React.TouchEvent) {
     const ts = Array.from(e.touches).map((t) => ({ x: t.clientX, y: t.clientY, t: Date.now() }));
