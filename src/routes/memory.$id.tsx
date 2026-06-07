@@ -149,9 +149,15 @@ function MemoryDetail() {
             </div>
           </div>
           {view === "slideshow" ? (
-            <Slideshow items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
+            <Slideshow
+              items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))}
+              meta={{ caption: m.note || m.title, date: format(parseISO(m.memory_date), "MMMM d, yyyy") }}
+            />
           ) : (
-            <Gallery items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))} />
+            <Gallery
+              items={data.images.map((im) => ({ id: im.id, path: im.storage_path, url: im.url }))}
+              meta={{ caption: m.note || m.title, date: format(parseISO(m.memory_date), "MMMM d, yyyy") }}
+            />
           )}
         </section>
       )}
