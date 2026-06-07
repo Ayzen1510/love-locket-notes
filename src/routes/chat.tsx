@@ -7,7 +7,7 @@ import { AppGate } from "@/components/AppGate";
 import { BottomNav } from "@/components/BottomNav";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Heart, Send, Copy, Check, ImagePlus, X, Link2, Reply, Pencil, Trash2, SmilePlus } from "lucide-react";
+import { Heart, Send, Copy, Check, ImagePlus, X, Link2, Reply, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
