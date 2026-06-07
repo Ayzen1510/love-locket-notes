@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play, Maximize2, X, Settings } from "lucide-react";
 import { isVideoPath } from "@/lib/memories";
+import { PhotoViewer, type ViewerItem } from "@/components/PhotoViewer";
 
 export type SlideItem = { id: string; path: string; url: string | null };
 
@@ -40,7 +41,7 @@ function slideClasses(t: Transition, active: boolean, dir: 1 | -1): string {
   }
 }
 
-export function Slideshow({ items }: { items: SlideItem[] }) {
+export function Slideshow({ items, meta }: { items: SlideItem[]; meta?: { caption?: string | null; date?: string | null } }) {
   const [prefs, setPrefs] = useState<Prefs>(() => loadPrefs());
   const [i, setI] = useState(0);
   const [dir, setDir] = useState<1 | -1>(1);
@@ -91,24 +92,6 @@ export function Slideshow({ items }: { items: SlideItem[] }) {
       }
     });
   }, [safeI, current?.id]);
-
-  // fullscreen keyboard
-  useEffect(() => {
-    if (!fs) return;
-    fsCloseRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFs(false);
-      else if (e.key === "ArrowRight") go(1);
-      else if (e.key === "ArrowLeft") go(-1);
-      else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [fs, playing]);
 
   if (!items.length) return null;
 
