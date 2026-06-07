@@ -251,66 +251,13 @@ export function Slideshow({ items, meta }: { items: SlideItem[]; meta?: { captio
         )}
       </div>
 
-      {/* Fullscreen modal */}
       {fs && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center animate-fade-up"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Fullscreen image viewer"
-          onClick={(e) => { if (e.target === e.currentTarget) setFs(false); }}
-        >
-          <button
-            ref={fsCloseRef}
-            onClick={() => setFs(false)}
-            className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            aria-label="Close fullscreen"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          {items.length > 1 && (
-            <>
-              <button
-                onClick={() => go(-1)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Previous"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button
-                onClick={() => go(1)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Next"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            </>
-          )}
-
-          <div
-            className="relative w-screen h-screen flex items-center justify-center"
-            onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
-            onTouchEnd={(e) => {
-              if (touchX.current == null) return;
-              const dx = e.changedTouches[0].clientX - touchX.current;
-              if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
-              touchX.current = null;
-            }}
-          >
-            {current?.url ? (
-              isVideoPath(current.path) ? (
-                <video src={current.url} controls autoPlay playsInline className="w-screen h-screen object-contain" />
-              ) : (
-                <img src={current.url} alt="" className="w-screen h-screen object-contain select-none" draggable={false} />
-              )
-            ) : null}
-          </div>
-
-          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-xs tabular-nums px-3 py-1 rounded-full bg-white/10 backdrop-blur">
-            {safeI + 1} / {items.length}
-          </p>
-        </div>
+        <PhotoViewer
+          items={items.map<ViewerItem>((it) => ({ id: it.id, path: it.path, url: it.url, caption: meta?.caption ?? null, date: meta?.date ?? null }))}
+          index={safeI}
+          onClose={() => setFs(false)}
+          onIndexChange={(idx) => setI(idx)}
+        />
       )}
     </>
   );
