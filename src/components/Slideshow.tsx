@@ -256,6 +256,7 @@ export function Slideshow({ items, meta }: { items: SlideItem[]; meta?: { captio
           index={safeI}
           onClose={() => setFs(false)}
           onIndexChange={(idx) => setI(idx)}
+          hideInfo
         />
       )}
     </>
