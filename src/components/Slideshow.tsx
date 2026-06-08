@@ -32,12 +32,12 @@ function slideClasses(t: Transition, active: boolean, dir: 1 | -1): string {
     case "slide":
       return active
         ? "opacity-100 translate-x-0 z-10"
-        : `opacity-0 z-0 ${dir === 1 ? "-translate-x-8" : "translate-x-8"}`;
+        : `opacity-0 z-0 ${dir === 1 ? "-translate-x-6" : "translate-x-6"} pointer-events-none`;
     case "zoom":
-      return active ? "opacity-100 scale-100 z-10" : "opacity-0 scale-105 z-0";
+      return active ? "opacity-100 scale-100 z-10" : "opacity-0 scale-105 z-0 pointer-events-none";
     case "fade":
     default:
-      return active ? "opacity-100 z-10" : "opacity-0 z-0";
+      return active ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none";
   }
 }
 
@@ -98,7 +98,7 @@ export function Slideshow({ items, meta }: { items: SlideItem[]; meta?: { captio
     const isVid = isVideoPath(it.path);
     return (
       <div
-        className={`absolute inset-0 transition-all duration-700 ease-out ${slideClasses(prefs.transition, active, dir)}`}
+        className={`absolute inset-0 transition-[opacity,transform] duration-500 ease-out will-change-[opacity,transform] ${slideClasses(prefs.transition, active, dir)}`}
         aria-hidden={!active}
         role="group"
         aria-roledescription="slide"
@@ -149,8 +149,9 @@ export function Slideshow({ items, meta }: { items: SlideItem[]; meta?: { captio
         {/* soft backdrop using current image blurred */}
         {current?.url && !isVideoPath(current.path) && (
           <div
+            key={current.id}
             aria-hidden
-            className="absolute inset-0 scale-110 blur-2xl opacity-50 transition-all duration-700"
+            className="absolute inset-0 scale-110 blur-2xl opacity-50"
             style={{ backgroundImage: `url(${current.url})`, backgroundSize: "cover", backgroundPosition: "center" }}
           />
         )}
@@ -161,7 +162,7 @@ export function Slideshow({ items, meta }: { items: SlideItem[]; meta?: { captio
             key={it.id}
             type="button"
             onClick={() => !isVideoPath(it.path) && idx === safeI && setFs(true)}
-            className={`absolute inset-0 ${idx === safeI && !isVideoPath(it.path) ? "cursor-zoom-in" : "cursor-default"} focus:outline-none`}
+            className={`absolute inset-0 ${idx === safeI && !isVideoPath(it.path) ? "cursor-zoom-in" : "cursor-default pointer-events-none"} focus:outline-none`}
             tabIndex={idx === safeI ? 0 : -1}
             aria-label={idx === safeI ? "Open image fullscreen" : undefined}
           >
