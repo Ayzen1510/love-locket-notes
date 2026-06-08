@@ -16,9 +16,10 @@ type Props = {
   index: number;
   onClose: () => void;
   onIndexChange?: (i: number) => void;
+  hideInfo?: boolean;
 };
 
-export function PhotoViewer({ items, index, onClose, onIndexChange }: Props) {
+export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = false }: Props) {
   const [i, setI] = useState(index);
   const [playing, setPlaying] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -237,9 +238,11 @@ export function PhotoViewer({ items, index, onClose, onIndexChange }: Props) {
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <button onClick={() => setShowInfo((s) => !s)} className={`w-11 h-11 rounded-full ${showInfo ? "bg-white text-black" : "bg-white/15 text-white"} active:scale-95 flex items-center justify-center`} aria-label="Info" aria-pressed={showInfo}>
-                <Info className="w-5 h-5" />
-              </button>
+              {!hideInfo && (
+                <button onClick={() => setShowInfo((s) => !s)} className={`w-11 h-11 rounded-full ${showInfo ? "bg-white text-black" : "bg-white/15 text-white"} active:scale-95 flex items-center justify-center`} aria-label="Info" aria-pressed={showInfo}>
+                  <Info className="w-5 h-5" />
+                </button>
+              )}
               <button onClick={share} className="w-11 h-11 rounded-full bg-white/15 text-white active:scale-95 flex items-center justify-center" aria-label="Share">
                 <Share2 className="w-5 h-5" />
               </button>
@@ -278,7 +281,7 @@ export function PhotoViewer({ items, index, onClose, onIndexChange }: Props) {
           )}
 
           {/* Info panel */}
-          {showInfo && (
+          {showInfo && !hideInfo && (
             <div
               className="absolute left-0 right-0 bottom-0 bg-black/85 backdrop-blur-xl text-white p-5 pb-8 animate-fade-up rounded-t-3xl"
               style={{ paddingBottom: "max(env(safe-area-inset-bottom), 24px)" }}
