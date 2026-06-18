@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight, Play, Pause, Info, Share2, Download } from "lucide-react";
 import { isVideoPath } from "@/lib/memories";
 import { toast } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
 
 export type ViewerItem = {
   id: string;
@@ -23,6 +24,7 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
   const [i, setI] = useState(index);
   const [playing, setPlaying] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [direction, setDirection] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
   const [showChrome, setShowChrome] = useState(true);
   // zoom + pan
@@ -45,6 +47,7 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
   const change = useCallback((delta: number) => {
     if (!items.length) return;
     setScale(1); setTx(0); setTy(0); setLoaded(false);
+    setDirection(delta);
     setI((p) => (p + delta + items.length) % items.length);
   }, [items.length]);
 
@@ -77,6 +80,18 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
 
   // reset on index change
   useEffect(() => { setScale(1); setTx(0); setTy(0); setLoaded(false); setShowChrome(true); }, [i]);
+
+  // preload neighbors
+  useEffect(() => {
+    if (!items.length) return;
+    [1, -1].forEach((d) => {
+      const n = items[(i + d + items.length) % items.length];
+      if (n?.url && !isVideoPath(n.path)) {
+        const img = new Image();
+        img.src = n.url;
+      }
+    });
+  }, [i, items]);
 
   function dist(a: React.Touch, b: React.Touch) { return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
 
@@ -180,16 +195,17 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
   const isVid = isVideoPath(active.path);
   const transform = `translate3d(${tx}px, ${ty + dragOffset}px, 0) scale(${scale})`;
   const dragOpacity = Math.max(0.4, 1 - dragOffset / 400);
+  const bgAlpha = dragOffset > 0 ? dragOpacity : 1;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Photo viewer"
-      className="fixed inset-0 z-[60] select-none"
+      className="fixed inset-0 z-[100] select-none bg-black"
       style={{
         height: "100dvh", width: "100vw", touchAction: "none", overscrollBehavior: "contain",
-        background: `rgba(0,0,0,${dragOpacity})`,
+        background: `rgba(0,0,0,${bgAlpha})`,
       }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -200,26 +216,40 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
         {!loaded && !isVid && (
           <div className="absolute w-10 h-10 rounded-full border-2 border-white/30 border-t-white animate-spin" aria-hidden />
         )}
-        {active.url ? (
-          isVid ? (
-            <video
-              key={active.id}
-              src={active.url}
-              controls autoPlay playsInline
-              onLoadedData={() => setLoaded(true)}
-              className="max-w-full max-h-full w-auto h-auto object-contain"
-            />
-          ) : (
-            <img
-              key={active.id}
-              src={active.url} alt=""
-              draggable={false}
-              onLoad={() => setLoaded(true)}
-              className={`max-w-full max-h-full w-auto h-auto object-contain will-change-transform ${loaded ? "animate-fade-in" : "opacity-0"}`}
-              style={{ transform, transition: pinchStart.current || panStart.current ? "none" : "transform 220ms cubic-bezier(.2,.7,.2,1)" }}
-            />
-          )
-        ) : null}
+        <AnimatePresence initial={false} mode="wait" custom={direction}>
+          {active.url ? (
+            isVid ? (
+              <motion.video
+                key={active.id}
+                src={active.url}
+                controls autoPlay playsInline
+                onLoadedData={() => setLoaded(true)}
+                onError={() => setLoaded(true)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="max-w-full max-h-full w-auto h-auto object-contain"
+              />
+            ) : (
+              <motion.img
+                key={active.id}
+                src={active.url}
+                alt=""
+                draggable={false}
+                onLoad={() => setLoaded(true)}
+                onError={() => setLoaded(true)}
+                custom={direction}
+                initial={{ opacity: 0, x: direction > 0 ? 40 : direction < 0 ? -40 : 0 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: direction > 0 ? -40 : direction < 0 ? 40 : 0 }}
+                transition={{ duration: 0.28, ease: [0.2, 0.7, 0.2, 1] }}
+                className="max-w-full max-h-full w-auto h-auto object-contain will-change-transform"
+                style={{ transform, transition: pinchStart.current || panStart.current ? "none" : undefined }}
+              />
+            )
+          ) : null}
+        </AnimatePresence>
       </div>
 
       {showChrome && (
