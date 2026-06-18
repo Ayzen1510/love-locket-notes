@@ -193,7 +193,6 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
 
   if (!active) return null;
   const isVid = isVideoPath(active.path);
-  const transform = `translate3d(${tx}px, ${ty + dragOffset}px, 0) scale(${scale})`;
   const dragOpacity = Math.max(0.4, 1 - dragOffset / 400);
   const bgAlpha = dragOffset > 0 ? dragOpacity : 1;
 
