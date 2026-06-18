@@ -240,12 +240,15 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
                 onLoad={() => setLoaded(true)}
                 onError={() => setLoaded(true)}
                 custom={direction}
-                initial={{ opacity: 0, x: direction > 0 ? 40 : direction < 0 ? -40 : 0 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: direction > 0 ? -40 : direction < 0 ? 40 : 0 }}
-                transition={{ duration: 0.28, ease: [0.2, 0.7, 0.2, 1] }}
+                initial={{ opacity: 0, x: direction > 0 ? 60 : direction < 0 ? -60 : 0 }}
+                animate={{ opacity: 1, x: tx, y: ty + dragOffset, scale }}
+                exit={{ opacity: 0, x: direction > 0 ? -60 : direction < 0 ? 60 : 0 }}
+                transition={
+                  pinchStart.current || panStart.current
+                    ? { duration: 0 }
+                    : { duration: 0.28, ease: [0.2, 0.7, 0.2, 1] }
+                }
                 className="max-w-full max-h-full w-auto h-auto object-contain will-change-transform"
-                style={{ transform, transition: pinchStart.current || panStart.current ? "none" : undefined }}
               />
             )
           ) : null}
