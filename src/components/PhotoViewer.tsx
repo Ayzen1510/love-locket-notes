@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Play, Pause, Info, Share2, Download } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Play, Pause, Info, Share2, Download, Maximize2, Minimize2 } from "lucide-react";
 import { isVideoPath } from "@/lib/memories";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
@@ -27,6 +27,12 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
   const [direction, setDirection] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
   const [showChrome, setShowChrome] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<Element | null>(null);
+  const thumbStripRef = useRef<HTMLDivElement>(null);
   // zoom + pan
   const [scale, setScale] = useState(1);
   const [tx, setTx] = useState(0);
@@ -51,13 +57,75 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
     setI((p) => (p + delta + items.length) % items.length);
   }, [items.length]);
 
-  // keys + body lock
+  // prefers-reduced-motion
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+
+  // remember trigger, restore focus on close
+  useEffect(() => {
+    triggerRef.current = document.activeElement;
+    // focus the close button when opened
+    requestAnimationFrame(() => closeBtnRef.current?.focus());
+    return () => {
+      const el = triggerRef.current as HTMLElement | null;
+      el?.focus?.();
+    };
+  }, []);
+
+  // sync browser fullscreen state
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    document.addEventListener("webkitfullscreenchange", onFs as EventListener);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      document.removeEventListener("webkitfullscreenchange", onFs as EventListener);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = rootRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> }) | null;
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element;
+      webkitExitFullscreen?: () => Promise<void>;
+    };
+    try {
+      if (!document.fullscreenElement && !doc.webkitFullscreenElement) {
+        if (el?.requestFullscreen) await el.requestFullscreen();
+        else if (el?.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // keys + body lock + focus trap
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       else if (e.key === "ArrowRight") change(1);
       else if (e.key === "ArrowLeft") change(-1);
       else if (e.key === " ") { e.preventDefault(); setPlaying((p) => !p); }
+      else if (e.key === "f" || e.key === "F") { toggleFullscreen(); }
+      else if (e.key === "Tab") {
+        const root = rootRef.current;
+        if (!root) return;
+        const focusables = root.querySelectorAll<HTMLElement>(
+          'button, [href], [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
     };
     const prevO = document.body.style.overflow;
     const prevT = document.body.style.touchAction;
@@ -69,7 +137,7 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
       document.body.style.touchAction = prevT;
       window.removeEventListener("keydown", onKey);
     };
-  }, [onClose, change]);
+  }, [onClose, change, toggleFullscreen]);
 
   // autoplay
   useEffect(() => {
@@ -80,6 +148,14 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
 
   // reset on index change
   useEffect(() => { setScale(1); setTx(0); setTy(0); setLoaded(false); setShowChrome(true); }, [i]);
+
+  // keep active thumbnail in view
+  useEffect(() => {
+    const strip = thumbStripRef.current;
+    if (!strip) return;
+    const el = strip.querySelector<HTMLElement>(`[data-thumb="${i}"]`);
+    el?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", inline: "center", block: "nearest" });
+  }, [i, reducedMotion]);
 
   // preload neighbors
   useEffect(() => {
@@ -195,25 +271,37 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
   const isVid = isVideoPath(active.path);
   const dragOpacity = Math.max(0.4, 1 - dragOffset / 400);
   const bgAlpha = dragOffset > 0 ? dragOpacity : 1;
+  const transitionDuration = reducedMotion ? 0.2 : 0.7;
 
   return (
     <div
+      ref={rootRef}
       role="dialog"
       aria-modal="true"
       aria-label="Photo viewer"
-      className="fixed inset-0 z-[100] select-none bg-black"
+      className="fixed inset-0 z-[100] select-none"
       style={{
         height: "100dvh", width: "100vw", touchAction: "none", overscrollBehavior: "contain",
-        background: `rgba(0,0,0,${bgAlpha})`,
+        background: `linear-gradient(140deg, rgba(46,28,38,${bgAlpha}) 0%, rgba(28,18,26,${bgAlpha}) 60%, rgba(18,12,18,${bgAlpha}) 100%)`,
       }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      {/* Ambient bokeh / light-leak overlay (purely decorative) */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 -left-16 w-[55vw] h-[55vw] rounded-full opacity-30 blur-3xl"
+             style={{ background: "radial-gradient(circle, #f5c7d4 0%, transparent 70%)" }} />
+        <div className="absolute -bottom-32 -right-20 w-[60vw] h-[60vw] rounded-full opacity-25 blur-3xl"
+             style={{ background: "radial-gradient(circle, #f1d9a8 0%, transparent 70%)" }} />
+        <div className="absolute top-1/3 right-1/4 w-40 h-40 rounded-full opacity-20 blur-2xl"
+             style={{ background: "radial-gradient(circle, #fff3e6 0%, transparent 70%)" }} />
+      </div>
+
       {/* image stage */}
       <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
         {!loaded && !isVid && (
-          <div className="absolute w-10 h-10 rounded-full border-2 border-white/30 border-t-white animate-spin" aria-hidden />
+          <div className="absolute w-10 h-10 rounded-full border-2 border-[#f5c7d4]/40 border-t-[#f5c7d4] animate-spin" aria-hidden />
         )}
         <AnimatePresence initial={false} mode="wait" custom={direction}>
           {active.url ? (
@@ -227,8 +315,11 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, ease: "easeInOut" }}
-                className="max-w-full max-h-full w-auto h-auto object-contain"
+                transition={{ duration: transitionDuration, ease: "easeInOut" }}
+                className="max-w-[92%] max-h-[82%] w-auto h-auto object-contain rounded-2xl"
+                style={{
+                  boxShadow: "0 30px 80px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(245,199,212,0.25), 0 0 0 6px rgba(241,217,168,0.08)",
+                }}
               />
             ) : (
               <motion.img
@@ -239,46 +330,55 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
                 onLoad={() => setLoaded(true)}
                 onError={() => setLoaded(true)}
                 custom={direction}
-                initial={{ opacity: 0, x: direction > 0 ? 60 : direction < 0 ? -60 : 0 }}
+                initial={{ opacity: 0, x: reducedMotion ? 0 : direction > 0 ? 40 : direction < 0 ? -40 : 0 }}
                 animate={{ opacity: 1, x: tx, y: ty + dragOffset, scale }}
-                exit={{ opacity: 0, x: direction > 0 ? -60 : direction < 0 ? 60 : 0 }}
+                exit={{ opacity: 0, x: reducedMotion ? 0 : direction > 0 ? -40 : direction < 0 ? 40 : 0 }}
                 transition={
                   pinchStart.current || panStart.current
                     ? { duration: 0 }
-                    : { duration: 0.28, ease: [0.2, 0.7, 0.2, 1] }
+                    : { duration: transitionDuration, ease: [0.22, 0.61, 0.36, 1] }
                 }
-                className="max-w-full max-h-full w-auto h-auto object-contain will-change-transform"
+                className="max-w-[92%] max-h-[82%] w-auto h-auto object-contain rounded-2xl will-change-transform"
+                style={{
+                  boxShadow: "0 30px 80px -20px rgba(0,0,0,0.75), 0 0 0 1px rgba(245,199,212,0.3), 0 0 0 6px rgba(241,217,168,0.1)",
+                }}
               />
             )
           ) : null}
         </AnimatePresence>
+        {/* soft vignette over the entire stage */}
+        <div aria-hidden className="pointer-events-none absolute inset-0"
+             style={{ background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%)" }} />
       </div>
 
       {showChrome && (
         <>
           {/* Top bar */}
           <div
-            className="absolute top-0 inset-x-0 flex items-center justify-between gap-2 px-3 py-2 bg-gradient-to-b from-black/70 to-transparent animate-fade-in"
+            className="absolute top-0 inset-x-0 z-20 flex items-center justify-between gap-2 px-3 py-2 bg-gradient-to-b from-black/60 via-black/20 to-transparent animate-fade-in"
             style={{ paddingTop: "max(env(safe-area-inset-top), 10px)" }}
           >
             <div className="flex items-center gap-2">
-              <button onClick={onClose} className="w-11 h-11 rounded-full bg-white/15 active:bg-white/30 text-white flex items-center justify-center" aria-label="Close">
+              <button ref={closeBtnRef} onClick={onClose} className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 backdrop-blur-md text-[#fdf2e9] border border-white/15 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c7d4]" aria-label="Close viewer">
                 <X className="w-5 h-5" />
               </button>
-              <span className="text-white text-sm tabular-nums px-3 py-1 rounded-full bg-white/10 backdrop-blur">
+              <span className="text-[#fdf2e9] text-sm tabular-nums px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/10" style={{ fontFamily: '"Playfair Display", serif' }}>
                 {i + 1} / {items.length}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
+              <button onClick={toggleFullscreen} className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-[#fdf2e9] backdrop-blur-md border border-white/15 active:scale-95 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c7d4]" aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"} aria-pressed={isFullscreen}>
+                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </button>
               {!hideInfo && (
-                <button onClick={() => setShowInfo((s) => !s)} className={`w-11 h-11 rounded-full ${showInfo ? "bg-white text-black" : "bg-white/15 text-white"} active:scale-95 flex items-center justify-center`} aria-label="Info" aria-pressed={showInfo}>
+                <button onClick={() => setShowInfo((s) => !s)} className={`w-11 h-11 rounded-full backdrop-blur-md border border-white/15 active:scale-95 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c7d4] ${showInfo ? "bg-[#f5c7d4] text-[#2a1820]" : "bg-white/10 hover:bg-white/20 text-[#fdf2e9]"}`} aria-label="Photo info" aria-pressed={showInfo}>
                   <Info className="w-5 h-5" />
                 </button>
               )}
-              <button onClick={share} className="w-11 h-11 rounded-full bg-white/15 text-white active:scale-95 flex items-center justify-center" aria-label="Share">
+              <button onClick={share} className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-[#fdf2e9] backdrop-blur-md border border-white/15 active:scale-95 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c7d4]" aria-label="Share photo">
                 <Share2 className="w-5 h-5" />
               </button>
-              <button onClick={download} className="w-11 h-11 rounded-full bg-white/15 text-white active:scale-95 flex items-center justify-center" aria-label="Download">
+              <button onClick={download} className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-[#fdf2e9] backdrop-blur-md border border-white/15 active:scale-95 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c7d4]" aria-label="Download photo">
                 <Download className="w-5 h-5" />
               </button>
             </div>
@@ -287,27 +387,55 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
           {/* Arrows */}
           {items.length > 1 && scale === 1 && (
             <>
-              <button onClick={() => change(-1)} className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/15 active:bg-white/30 text-white items-center justify-center" aria-label="Previous">
+              <button onClick={() => change(-1)} className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 backdrop-blur-md text-[#fdf2e9] border border-white/15 items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c7d4]" aria-label="Previous photo">
                 <ChevronLeft className="w-7 h-7" />
               </button>
-              <button onClick={() => change(1)} className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/15 active:bg-white/30 text-white items-center justify-center" aria-label="Next">
+              <button onClick={() => change(1)} className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 backdrop-blur-md text-[#fdf2e9] border border-white/15 items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c7d4]" aria-label="Next photo">
                 <ChevronRight className="w-7 h-7" />
               </button>
             </>
           )}
 
-          {/* Bottom bar */}
+          {/* Bottom bar: thumbnail strip + play */}
           {items.length > 1 && (
             <div
-              className="absolute bottom-0 inset-x-0 flex items-center justify-center pb-4 pt-8 bg-gradient-to-t from-black/70 to-transparent"
+              className="absolute bottom-0 inset-x-0 z-20 flex flex-col items-center gap-3 pb-3 pt-10 bg-gradient-to-t from-black/70 via-black/30 to-transparent"
               style={{ paddingBottom: "max(env(safe-area-inset-bottom), 14px)" }}
             >
+              <div ref={thumbStripRef} className="max-w-full overflow-x-auto px-4 no-scrollbar">
+                <div className="flex items-center gap-2">
+                  {items.map((it, idx) => {
+                    const activeT = idx === i;
+                    const vid = isVideoPath(it.path);
+                    return (
+                      <button
+                        key={it.id}
+                        data-thumb={idx}
+                        onClick={() => { setDirection(idx > i ? 1 : -1); setI(idx); }}
+                        aria-label={`Go to photo ${idx + 1}`}
+                        aria-current={activeT ? "true" : undefined}
+                        className={`relative shrink-0 overflow-hidden rounded-lg transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c7d4] ${
+                          activeT
+                            ? "w-16 h-16 ring-2 ring-[#f1d9a8] shadow-[0_0_0_2px_rgba(245,199,212,0.4)]"
+                            : "w-12 h-12 opacity-60 hover:opacity-100 ring-1 ring-white/20"
+                        }`}
+                      >
+                        {it.url && !vid ? (
+                          <img src={it.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full bg-white/10" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <button
                 onClick={() => setPlaying((p) => !p)}
-                className="w-14 h-14 rounded-full bg-white/15 active:bg-white/30 text-white flex items-center justify-center"
-                aria-label={playing ? "Pause" : "Play"} aria-pressed={playing}
+                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 backdrop-blur-md text-[#fdf2e9] border border-white/15 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c7d4]"
+                aria-label={playing ? "Pause slideshow" : "Play slideshow"} aria-pressed={playing}
               >
-                {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" fill="currentColor" />}
+                {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" fill="currentColor" />}
               </button>
             </div>
           )}
@@ -315,21 +443,23 @@ export function PhotoViewer({ items, index, onClose, onIndexChange, hideInfo = f
           {/* Info panel */}
           {showInfo && !hideInfo && (
             <div
-              className="absolute left-0 right-0 bottom-0 bg-black/85 backdrop-blur-xl text-white p-5 pb-8 animate-fade-up rounded-t-3xl"
+              className="absolute left-0 right-0 bottom-0 z-30 backdrop-blur-xl p-6 pb-8 animate-fade-up rounded-t-3xl border-t border-[#f1d9a8]/20"
               style={{ paddingBottom: "max(env(safe-area-inset-bottom), 24px)" }}
               onClick={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
               onTouchEnd={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
             >
-              <div className="w-10 h-1 rounded-full bg-white/30 mx-auto mb-3" />
+              <div aria-hidden className="absolute inset-0 -z-10 rounded-t-3xl"
+                   style={{ background: "linear-gradient(180deg, rgba(46,28,38,0.92), rgba(28,18,26,0.96))" }} />
+              <div className="w-10 h-1 rounded-full bg-[#f1d9a8]/40 mx-auto mb-4" />
               {active.date && (
-                <p className="text-xs uppercase tracking-widest text-white/60">{active.date}</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#f1d9a8]/80" style={{ fontFamily: '"Playfair Display", serif' }}>{active.date}</p>
               )}
-              <p className="mt-1 text-base leading-relaxed">
-                {active.caption || <span className="italic text-white/50">No caption</span>}
+              <p className="mt-2 text-lg leading-relaxed text-[#fdf2e9]" style={{ fontFamily: '"Playfair Display", serif', fontStyle: active.caption ? "normal" : "italic" }}>
+                {active.caption || <span className="text-[#fdf2e9]/50">A quiet moment, untitled.</span>}
               </p>
-              <p className="mt-3 text-[11px] text-white/50">Photo {i + 1} of {items.length}</p>
+              <p className="mt-3 text-[11px] tracking-widest uppercase text-[#fdf2e9]/40">Photo {i + 1} of {items.length}</p>
             </div>
           )}
         </>
